@@ -51,7 +51,7 @@ def wsp_model(features, labels, mode):
 
 
     #conv2
-    conv2 = tf.layers.conv2d(
+  conv2 = tf.layers.conv2d(
       name="conv2",
       inputs=norm1,
       filters=128,
@@ -69,7 +69,7 @@ def wsp_model(features, labels, mode):
 
 
   #conv3
-    conv3 = tf.layers.conv2d(
+  conv3 = tf.layers.conv2d(
       name="conv3",
       inputs=pool2,
       filters=256,
@@ -83,7 +83,7 @@ def wsp_model(features, labels, mode):
   fc4 = tf.layers.dense(name="fc4",inputs=conv3, units=512, activation=tf.nn.relu,trainable=True)
 
     #dropout
-    dropout = tf.layers.dropout(
+  dropout = tf.layers.dropout(
       inputs=fc4, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
 
@@ -98,25 +98,25 @@ def wsp_model(features, labels, mode):
       "probabilities": tf.nn.softmax(fc5, name="softmax_tensor")
     }
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf.estimator.ModeKeys.PREDICT:
     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     # Calculate Loss (for both TRAIN and EVAL modes)
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=fc5)
+  loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=fc5)
 
     # Configure the Training Op (for TRAIN mode)
-    if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf.estimator.ModeKeys.TRAIN:
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-      train_op = optimizer.minimize(
+    train_op = optimizer.minimize(
           loss=loss,
           global_step=tf.train.get_global_step())
-      return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Add evaluation metrics (for EVAL mode)
-    eval_metric_ops = {
+  eval_metric_ops = {
         "accuracy": tf.metrics.accuracy(
             labels=labels, predictions=predictions["classes"])}
-    return tf.estimator.EstimatorSpec(
+  return tf.estimator.EstimatorSpec(
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
@@ -154,7 +154,7 @@ def d_cnn_model(features, labels, mode):
 
 
     #conv2
-    conv2 = tf.layers.conv2d(
+  conv2 = tf.layers.conv2d(
       name="conv2",
       inputs=norm1,
       filters=128,
@@ -171,7 +171,7 @@ def d_cnn_model(features, labels, mode):
 
 
   #conv3
-    conv3 = tf.layers.conv2d(
+  conv3 = tf.layers.conv2d(
       name="conv3",
       inputs=pool2,
       filters=256,
@@ -220,7 +220,7 @@ def d_cnn_model(features, labels, mode):
     )
 
   #dropout
-    dropout = tf.layers.dropout(
+  dropout = tf.layers.dropout(
       inputs=fc4, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
   # Inner Product
@@ -240,25 +240,25 @@ def d_cnn_model(features, labels, mode):
       "probabilities": tf.nn.softmax(fc5, name="softmax_tensor")
     }
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf.estimator.ModeKeys.PREDICT:
     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
     # Calculate Loss (for both TRAIN and EVAL modes)
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=fc5)
+  loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=fc5)
 
     # Configure the Training Op (for TRAIN mode)
-    if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf.estimator.ModeKeys.TRAIN:
     optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-      train_op = optimizer.minimize(
+    train_op = optimizer.minimize(
           loss=loss,
           global_step=tf.train.get_global_step())
-      return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Add evaluation metrics (for EVAL mode)
-    eval_metric_ops = {
+  eval_metric_ops = {
         "accuracy": tf.metrics.accuracy(
             labels=labels, predictions=predictions["classes"])}
-    return tf.estimator.EstimatorSpec(
+  return tf.estimator.EstimatorSpec(
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
