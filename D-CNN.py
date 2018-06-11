@@ -183,11 +183,13 @@ def d_cnn_model(features, labels, mode):
     #fc4
   fc4 = tf.layers.dense(name="fc4",inputs=conv3, units=512, activation=tf.nn.relu)
 
-    #dropout
-    dropout = tf.layers.dropout(
+  #dropout
+  dropout = tf.layers.dropout(
       inputs=fc4, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
-    #pool5_spm3
+  tf.train.init_from_checkpoint("/tmp/wsp_model",{'conv1':'conv1','conv2':'conv2','conv3':'conv3','pool1':'pool1','pool2':'pool2'})
+
+  #pool5_spm3
   pool5_spm3 = tf.layers.max_pooling2d(inputs=fc4, pool_size=10, strides=10)
 
   #pool5_spm3_flatten
@@ -300,7 +302,33 @@ def main(unused_argv):
   eval_results = wsp_model.evaluate(input_fn=eval_input_fn)
   #print(eval_results)
 
+  dcnn_model = tf.estimator.Estimator(
+  model_fn=d_cnn_model, model_dir="/tmp/d_cnn_model")
+  # Set up logging for predictions
+  tensors_to_log = {"probabilities": "softmax_tensor"}
+  logging_hook = tf.train.LoggingTensorHook(
+  tensors=tensors_to_log, every_n_iter=50)
+  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": train_data},
+    y=train_labels,
+    batch_size=100,
+    num_epochs=None,
+    shuffle=True)
 
+
+
+
+
+  wsp_model.train(
+    input_fn=train_input_fn,
+    steps=20000,
+    hooks=[logging_hook])
+  # Evaluate the model and print results
+  eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+    x={"x": eval_data},
+    y=eval_labels,
+    num_epochs=1,
+    shuffle=False)
+  eval_results = wsp_model.evaluate(input_fn=eval_input_fn)
 
 
 
