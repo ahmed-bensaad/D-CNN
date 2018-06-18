@@ -5,6 +5,8 @@ from __future__ import print_function
 # Imports
 import numpy as np
 import tensorflow as tf
+import h5py
+
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -19,8 +21,16 @@ def bias_variable(shape):
 
 def wsp_model(features, labels, mode):
   #TODO create patches for input layer
+  patches_=tf.extract_image_patches(
+    features,
+    ksizes = [1, 99, 99, 1],
+    strides = [1, 21, 61, 1],
+    rates = [1, 1, 1, 1],
+    paddin="VALID",
+    name=None
+)
 
-  input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+  input_layer = patches
 
   #conv1
   conv1 = tf.layers.conv2d(
@@ -267,9 +277,10 @@ def d_cnn_model(features, labels, mode):
 
 def main(unused_argv):
   # Load training and eval data
-  mnist = tf.contrib.learn.datasets.load_dataset("mnist")
-  train_data = mnist.train.images # Returns np.array
-  train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
+  with h5py.File('nyu_depth_v2_labeled.mat', 'r') as file:
+    train_data=np.array(file['rawDepths'])
+    train_data=np.array(file['labels'])
+
   eval_data = mnist.test.images # Returns np.array
   eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
@@ -318,7 +329,7 @@ def main(unused_argv):
 
 
 
-  wsp_model.train(
+  dcnn_model.train(
     input_fn=train_input_fn,
     steps=20000,
     hooks=[logging_hook])
