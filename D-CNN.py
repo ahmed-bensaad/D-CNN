@@ -278,19 +278,23 @@ def d_cnn_model(features, labels, mode):
 def main(unused_argv):
   # Load training and eval data
   with h5py.File('nyu_depth_v2_labeled.mat', 'r') as file:
-    train_data=np.array(file['rawDepths'])
-    train_data=np.array(file['labels'])
+    train_data_images=np.array(file[('images')])[:1200,:,:,:]
+    train_data_depths=np.array(file[('rawDepths')])[:1200,:,:]
+    eval_data_images=np.array(file[('images')])[1201:,:,:,:]
+    eval_data_depths=np.array(file[('rawDepths')])[1201:,:,:]
+    train_labels=np.array(file['labels'])[:1200]
+    eval_labels=np.array(file['labels'])[1201:]
+    file.close()
 
-  eval_data = mnist.test.images # Returns np.array
-  eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
 
-  wsp_model = tf.estimator.Estimator(
+  print('beginning learning')
+  wsp_model_estimator = tf.estimator.Estimator(
   model_fn=wsp_model, model_dir="/tmp/wsp_model")
   # Set up logging for predictions
   tensors_to_log = {"probabilities": "softmax_tensor"}
   logging_hook = tf.train.LoggingTensorHook(
   tensors=tensors_to_log, every_n_iter=50)
-  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": train_data},
+  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": train_data_images},
     y=train_labels,
     batch_size=100,
     num_epochs=None,
@@ -300,17 +304,17 @@ def main(unused_argv):
 
 
 
-  wsp_model.train(
+  wsp_model_estimator.train(
     input_fn=train_input_fn,
     steps=20000,
     hooks=[logging_hook])
   # Evaluate the model and print results
   eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-    x={"x": eval_data},
+    x={"x": eval_data_images},
     y=eval_labels,
     num_epochs=1,
     shuffle=False)
-  eval_results = wsp_model.evaluate(input_fn=eval_input_fn)
+  eval_results = wsp_model_estimator.evaluate(input_fn=eval_input_fn)
   #print(eval_results)
 
   dcnn_model = tf.estimator.Estimator(
@@ -319,7 +323,7 @@ def main(unused_argv):
   tensors_to_log = {"probabilities": "softmax_tensor"}
   logging_hook = tf.train.LoggingTensorHook(
   tensors=tensors_to_log, every_n_iter=50)
-  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": train_data},
+  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": [train_data_images,train_data_depths]},
     y=train_labels,
     batch_size=100,
     num_epochs=None,
@@ -339,7 +343,7 @@ def main(unused_argv):
     y=eval_labels,
     num_epochs=1,
     shuffle=False)
-  eval_results = wsp_model.evaluate(input_fn=eval_input_fn)
+  eval_results = dcnn_model.evaluate(input_fn=eval_input_fn)
 
 
 
