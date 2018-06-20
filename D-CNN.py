@@ -276,13 +276,14 @@ def d_cnn_model(features, labels, mode):
 
 def main(unused_argv):
   # Load training and eval data
+  nbImagesTrain = 1200
   with h5py.File('nyu_depth_v2_labeled.mat', 'r') as file:
-    train_data_images=np.array(file[('images')])[:1200,:,:,:]
-    train_data_depths=np.array(file[('rawDepths')])[:1200,:,:]
-    eval_data_images=np.array(file[('images')])[1201:,:,:,:]
-    eval_data_depths=np.array(file[('rawDepths')])[1201:,:,:]
-    train_labels=np.array(file['labels'])[:1200]
-    eval_labels=np.array(file['labels'])[1201:]
+    train_data_images=np.transpose(np.array(file[('images')])[:nbImagesTrain,:,:,:], (0, 3, 2, 1)).astype(np.float16)
+    train_data_depths=np.transpose(np.array(file[('rawDepths')])[:nbImagesTrain,:,:], (0, 2, 1)).astype(np.float16)
+    eval_data_images=np.transpose(np.array(file[('images')])[nbImagesTrain+1:,:,:,:], (0, 3, 2, 1)).astype(np.float16)
+    eval_data_depths=np.transpose(np.array(file[('rawDepths')])[nbImagesTrain+1:,:,:], (0, 2, 1)).astype(np.float16)
+    train_labels=np.transpose(np.array(file['labels'])[:nbImagesTrain], (0, 2, 1)).astype(np.int32)
+    eval_labels=np.transpose(np.array(file['labels'])[nbImagesTrain+1:], (0, 2, 1)).astype(np.int32)
     file.close()
 
 
