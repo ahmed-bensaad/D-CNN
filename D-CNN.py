@@ -6,6 +6,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import h5py
+import time
 
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -277,6 +278,8 @@ def d_cnn_model(features, labels, mode):
 def main(unused_argv):
   # Load training and eval data
   nbImagesTrain = 1200
+  print("Loading data ..",)
+  start = time.time()
   with h5py.File('nyu_depth_v2_labeled.mat', 'r') as file:
     train_data_images=np.transpose(np.array(file[('images')])[:nbImagesTrain,:,:,:], (0, 3, 2, 1)).astype(np.float16)
     train_data_depths=np.transpose(np.array(file[('rawDepths')])[:nbImagesTrain,:,:], (0, 2, 1)).astype(np.float16)
@@ -285,6 +288,8 @@ def main(unused_argv):
     train_labels=np.transpose(np.array(file['labels'])[:nbImagesTrain], (0, 2, 1)).astype(np.int32)
     eval_labels=np.transpose(np.array(file['labels'])[nbImagesTrain+1:], (0, 2, 1)).astype(np.int32)
     file.close()
+  end = time.time()
+  print("DONE (", end-start, "s)")
 
 
   print('beginning learning')
@@ -304,17 +309,25 @@ def main(unused_argv):
 
 
 
+  print("Training WSP ..",)
+  start = time.time()
   wsp_model_estimator.train(
     input_fn=train_input_fn,
     steps=20000,
     hooks=[logging_hook])
+  end = time.time()
+  print("DONE (", end-start, "s)")
   # Evaluate the model and print results
   eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x={"x": eval_data_images},
     y=eval_labels,
     num_epochs=1,
     shuffle=False)
+  print("Evaluating WSP ..",)
+  start = time.time()
   eval_results = wsp_model_estimator.evaluate(input_fn=eval_input_fn)
+  end = time.time()
+  print("DONE (", end-start, "s)")
   #print(eval_results)
 
   dcnn_model = tf.estimator.Estimator(
@@ -333,17 +346,25 @@ def main(unused_argv):
 
 
 
+  print("Training DCNN ..",)
+  start = time.time()
   dcnn_model.train(
     input_fn=train_input_fn,
     steps=20000,
     hooks=[logging_hook])
+  end = time.time()
+  print("DONE (", end-start, "s)")
   # Evaluate the model and print results
   eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x={"x": eval_data},
     y=eval_labels,
     num_epochs=1,
     shuffle=False)
+  print("Evaluating DCNN ..",)
+  start = time.time()
   eval_results = dcnn_model.evaluate(input_fn=eval_input_fn)
+  end = time.time()
+  print("DONE (", end-start, "s)")
 
 
 
