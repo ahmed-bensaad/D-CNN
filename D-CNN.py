@@ -21,12 +21,12 @@ def bias_variable(shape):
 
 def wsp_model(features, labels, mode):
   #TODO create patches for input layer
-  patches_=tf.extract_image_patches(
-    features,
+  patches=tf.extract_image_patches(
+    features["x"],
     ksizes = [1, 99, 99, 1],
     strides = [1, 21, 61, 1],
     rates = [1, 1, 1, 1],
-    paddin="VALID",
+    padding="VALID",
     name=None
 )
 
@@ -44,14 +44,13 @@ def wsp_model(features, labels, mode):
       activation=tf.nn.relu)
 
   #pool1
-  pool1 = tf.layers.max_pooling2d(name="pool1",inputs=conv1,trainable=True, pool_size=2, strides=2)
+  pool1 = tf.layers.max_pooling2d(name="pool1",inputs=conv1, pool_size=2, strides=2)
 
   #local response normalization
   norm1 = tf.nn.local_response_normalization(
       input = pool1,
       depth_radius=5,
       bias=1,
-      trainable=True,
       alpha=0.0001,
       beta=0.75)
 
@@ -71,7 +70,7 @@ def wsp_model(features, labels, mode):
       activation=tf.nn.relu)
 
     #pool2
-  pool2 = tf.layers.max_pooling2d(name="pool2",inputs=conv2, pool_size=2, strides=2,trainable=True)
+  pool2 = tf.layers.max_pooling2d(name="pool2",inputs=conv2, pool_size=2, strides=2)
 
   #padding 
   paddings = tf.constant([[1, 1,], [1, 1],[1,1],[1,1]])
