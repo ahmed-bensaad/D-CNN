@@ -96,7 +96,7 @@ class RecordReaderRGBD():
 
 
 reader = RecordReaderRGBD()
-filename_queue = tf.train.string_input_producer(['af'], num_epochs=1)
+filename_queue = tf.train.string_input_producer(['aa'], num_epochs=1)
 img_inp, global_gt_dict, local_gt_dict = reader.getBatch(filename_queue)
 a=    tf.Print(img_inp[0,:,:,1],[img_inp[0,:,:,1]])
 
