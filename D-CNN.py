@@ -7,6 +7,8 @@ import numpy as np
 import tensorflow as tf
 import h5py
 import time
+from RecordReaderAll import *
+
 
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -30,7 +32,7 @@ def wsp_model(features, labels, mode):
     padding="VALID",
     name=None
 )
-
+  unit = 1
   input_layer = patches
 
   #conv1
@@ -98,7 +100,7 @@ def wsp_model(features, labels, mode):
 
 
   #fc5
-  fc5 = tf.layers.dense(name="fc5",inputs=dropout, units=19,trainable=True) #a unit for each class
+  fc5 = tf.layers.dense(name="fc5",inputs=dropout, units=unit,trainable=True) #a unit for each class
 
   predictions = {
       # Generate predictions (for PREDICT and EVAL mode)
@@ -111,8 +113,11 @@ def wsp_model(features, labels, mode):
   if mode == tf.estimator.ModeKeys.PREDICT:
     return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
+  labels = tf.reshape(labels, [labels.shape[0], labels.shape[1], labels.shape[2], 1]) # add fourth dimension
+
+
     # Calculate Loss (for both TRAIN and EVAL modes)
-  loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=fc5)
+  loss = tf.losses.sparse_softmax_cross_entropy(labels=m_labels, logits=fc5)
 
     # Configure the Training Op (for TRAIN mode)
   if mode == tf.estimator.ModeKeys.TRAIN:
@@ -271,23 +276,57 @@ def d_cnn_model(features, labels, mode):
   return tf.estimator.EstimatorSpec(
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
+def labels_preprocess(labels):
+  labels=tf.convert_to_tensor(value=labels[0])
+  patches_labels=tf.extract_image_patches(
+    labels,
+    ksizes = [1, 99, 99, 1],
+    strides = [1, 21, 61, 1],
+    rates = [1, 1, 1, 1],
+    padding="SAME",
+    name=None)
+  is_plane= False
+  no_plane_value = 0
+  m_labels=[]
+  for patch in patches :
+    prob= 0
+    for i in range(patch.shape[0]):
+      for j in range(patch.shape[1]):
+        if patch[i,j] != no_plane_value:
+            prob+=1
+            if prob> 0.5 * patch.shape[0] * patch.shape[1]:
+              is_plane=True 
+              break
+        if is_plane:
+          break
+    if is_plane:
+      m_labels.append(1)
+    else:
+      m_labels.append(0)
+
+
+    prob /= patch.shape[0]*patch.shape[1]
+    m_labels =tf.convert_to_tensor(m_labels)
+    return m_labels
 
 
 
 
 def main(unused_argv):
   # Load training and eval data
-  nbImagesTrain = 1200
+  nbImagesTrain = 10
   print("Loading data ..",)
   start = time.time()
-  with h5py.File('nyu_depth_v2_labeled.mat', 'r') as file:
-    train_data_images=np.transpose(np.array(file[('images')])[:nbImagesTrain,:,:,:], (0, 3, 2, 1)).astype(np.float16)
-    train_data_depths=np.transpose(np.array(file[('rawDepths')])[:nbImagesTrain,:,:], (0, 2, 1)).astype(np.float16)
-    eval_data_images=np.transpose(np.array(file[('images')])[nbImagesTrain+1:,:,:,:], (0, 3, 2, 1)).astype(np.float16)
-    eval_data_depths=np.transpose(np.array(file[('rawDepths')])[nbImagesTrain+1:,:,:], (0, 2, 1)).astype(np.float16)
-    train_labels=np.transpose(np.array(file['labels'])[:nbImagesTrain], (0, 2, 1)).astype(np.int32)
-    eval_labels=np.transpose(np.array(file['labels'])[nbImagesTrain+1:], (0, 2, 1)).astype(np.int32)
-    file.close()
+  # with h5py.File('nyu_depth_v2_labeled.mat', 'r') as file:
+  #   train_data_images=np.transpose(np.array(file[('images')])[:nbImagesTrain,:,:,:], (0, 3, 2, 1)).astype(np.float16)
+  #   train_data_depths=np.transpose(np.array(file[('rawDepths')])[:nbImagesTrain,:,:], (0, 2, 1)).astype(np.float16)
+  #   eval_data_images=np.transpose(np.array(file[('images')])[nbImagesTrain+1:,:,:,:], (0, 3, 2, 1)).astype(np.float16)
+  #   eval_data_depths=np.transpose(np.array(file[('rawDepths')])[nbImagesTrain+1:,:,:], (0, 2, 1)).astype(np.float16)
+  #   train_labels=np.transpose(np.array(file['labels'])[:nbImagesTrain], (0, 2, 1)).astype(np.int32)
+  #   eval_labels=np.transpose(np.array(file['labels'])[nbImagesTrain+1:], (0, 2, 1)).astype(np.int32)
+  #   file.close()
+  train_data_rgb,train_data_depth,train_labels=importdata(1)
+  train_labels = labels_preprocess(train_labels)
   end = time.time()
   print("DONE (", end-start, "s)")
 
@@ -299,7 +338,7 @@ def main(unused_argv):
   tensors_to_log = {"probabilities": "softmax_tensor"}
   logging_hook = tf.train.LoggingTensorHook(
   tensors=tensors_to_log, every_n_iter=50)
-  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": train_data_images},
+  train_input_fn = tf.estimator.inputs.numpy_input_fn(x={"x": train_data_rgb},
     y=train_labels,
     batch_size=100,
     num_epochs=None,
